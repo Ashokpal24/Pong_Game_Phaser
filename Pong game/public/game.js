@@ -28,6 +28,8 @@ var leftPaddle;
 var rightPaddle;
 var controlPaddle = null;
 var controlSide = null;
+var opponentPaddle = null;
+var opponentPositionY = 0;
 var leftGoal;
 var rightGoal;
 var collisionGraphics;
@@ -45,16 +47,22 @@ socket.on("side", (data) => {
       controlSide = "right";
     }
   }
-  console.log(controlSide);
 });
 
 socket.on("full", () => {
   console.log("Game is full please try again later");
 });
+
 socket.on("start", () => {
   config.scene.create = create;
   game = new Phaser.Game(config);
   console.log(socket.id + " game start");
+});
+
+socket.on("paddlePosition", (data) => {
+  if (opponentPaddle != null && socket.id != data.ID) {
+    opponentPositionY = data.y;
+  }
 });
 
 function preload() {}
@@ -135,6 +143,7 @@ function create() {
   p2ScoreText.setScrollFactor(0);
 
   controlPaddle = controlSide == "left" ? leftPaddle : rightPaddle;
+  opponentPaddle = controlPaddle == leftPaddle ? rightPaddle : leftPaddle;
 }
 function update() {
   var cursors = this.input.keyboard.createCursorKeys();
@@ -146,6 +155,19 @@ function update() {
     } else {
       controlPaddle.setVelocityY(0);
     }
+    socket.emit("paddlePosition", {
+      y: controlPaddle.y,
+    });
+    updateOpponentYPosition();
+  }
+}
+
+function updateOpponentYPosition() {
+  if (opponentPaddle) {
+    opponentPaddle.y = Phaser.Math.Interpolation.Linear(
+      [opponentPaddle.y, opponentPositionY],
+      0.2,
+    );
   }
 }
 

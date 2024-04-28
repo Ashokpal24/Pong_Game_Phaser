@@ -17,13 +17,13 @@ let playerCount = 0;
 io.on("connection", (socket) => {
   console.log(`user connected ID: ${socket.id}`);
   playerCount++;
-  console.log("connected player count: ", playerCount);
 
   if (playerCount > 2) {
     socket.emit("full");
     socket.disconnect(true);
     return;
   }
+  console.log("connected player count: ", playerCount);
 
   if (playerCount === 1) {
     socket.emit("side", { side: "left", socketID: socket.id });
@@ -31,6 +31,10 @@ io.on("connection", (socket) => {
     socket.emit("side", { side: "right", socketID: socket.id });
     io.emit("start");
   }
+
+  socket.on("paddlePosition", (data) => {
+    io.emit("paddlePosition", { ID: socket.id, y: data.y });
+  });
 
   socket.on("disconnect", () => {
     console.log(`user disconnected ID: ${socket.id}`);
