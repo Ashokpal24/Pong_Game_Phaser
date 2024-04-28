@@ -12,16 +12,35 @@ const io = socketIo(server, {
   },
 });
 
+let playerCount = 0;
+
 io.on("connection", (socket) => {
-  console.log(`A user connected: ${socket.id}`);
+  console.log(`user connected ID: ${socket.id}`);
+  playerCount++;
+  console.log("connected player count: ", playerCount);
+
+  if (playerCount > 2) {
+    socket.emit("full");
+    socket.disconnect(true);
+    return;
+  }
+
+  if (playerCount === 1) {
+    socket.emit("side", { side: "left", socketID: socket.id });
+  } else if (playerCount === 2) {
+    socket.emit("side", { side: "right", socketID: socket.id });
+    io.emit("start");
+  }
 
   socket.on("disconnect", () => {
-    console.log("User disconnected");
+    console.log(`user disconnected ID: ${socket.id}`);
+    playerCount--;
+    console.log("connected player count: ", playerCount);
   });
 
-  socket.on("message", (data) => {
-    console.log("Message from client:", data);
-  });
+  // socket.on("message", (data) => {
+  //   console.log("Message from client:", data);
+  // });
 });
 
 const PORT = process.env.PORT || 3000;
