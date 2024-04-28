@@ -1,5 +1,7 @@
 import Phaser from "phaser";
-
+import io from "socket.io-client";
+const socket = io("https://6v27k7-3000.csb.app");
+socket.emit("message", `Random number ${Math.floor(Math.random() * 100)}`);
 const config = {
   type: Phaser.AUTO,
   width: window.innerWidth,
@@ -126,9 +128,13 @@ function handleCollision(ball, object) {
   collisionGraphics.clear();
   collisionGraphics.fillStyle(0x24c752, 1);
   collisionGraphics.fillCircle(ball.x, ball.y, 5);
-  if (ball.body.velocity.x < 400) {
-    ball.setVelocityX(ball.body.velocity.x * 1.5);
-    ball.setVelocityY(ball.body.velocity.y * 1.5);
+  if (ball.body.velocity.x < 400 && ball.body.velocity.x > -400) {
+    ball.setVelocityX(ball.body.velocity.x * 1.2);
+    ball.setVelocityY(ball.body.velocity.x * 1.2);
+  }
+  if (ball.body.velocity.y < 400 && ball.body.velocity.y > -400) {
+    ball.setVelocityX(ball.body.velocity.y * 1.2);
+    ball.setVelocityY(ball.body.velocity.y * 1.2);
   }
 }
 function GoalCollision(ball, object) {
@@ -140,7 +146,6 @@ function GoalCollision(ball, object) {
     p2Score++;
     p2ScoreText.setText(p2Score);
   }
-  console.log(object);
   collisionGraphics.clear();
   collisionGraphics.fillStyle(0xff0000, 1);
   collisionGraphics.fillCircle(ball.x, ball.y, 5);
