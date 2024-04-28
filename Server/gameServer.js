@@ -13,6 +13,8 @@ const io = socketIo(server, {
 });
 
 let playerCount = 0;
+var multiplierArray = [1, -1];
+var playerState = {};
 
 io.on("connection", (socket) => {
   console.log(`user connected ID: ${socket.id}`);
@@ -27,9 +29,13 @@ io.on("connection", (socket) => {
 
   if (playerCount === 1) {
     socket.emit("side", { side: "left", socketID: socket.id });
+    playerState[socket.id] = { points: 0 };
   } else if (playerCount === 2) {
     socket.emit("side", { side: "right", socketID: socket.id });
-    io.emit("start");
+    playerState[socket.id] = { points: 0 };
+    io.emit("start", {
+      mul: multiplierArray[Math.floor(Math.random() * multiplierArray.length)],
+    });
   }
 
   socket.on("paddlePosition", (data) => {
@@ -40,6 +46,22 @@ io.on("connection", (socket) => {
     console.log(`user disconnected ID: ${socket.id}`);
     playerCount--;
     console.log("connected player count: ", playerCount);
+  });
+
+  socket.on("goal", (data) => {
+    playerState[data.ID]["points"] = playerState[data.ID].points + 1;
+    console.log(socket.id);
+    console.log(playerState);
+    io.emit("goal", {
+      mul: multiplierArray[Math.floor(Math.random() * multiplierArray.length)],
+      ID: socket.id,
+      points: playerState[data.ID]["points"],
+    });
+  });
+  socket.on("ballCollision", (data) => {
+    io.emit("ballCollision", {
+      ...data,
+    });
   });
 
   // socket.on("message", (data) => {

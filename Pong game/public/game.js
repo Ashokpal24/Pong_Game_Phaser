@@ -29,7 +29,7 @@ var rightPaddle;
 var controlPaddle = null;
 var controlSide = null;
 var opponentPaddle = null;
-var opponentPositionY = 0;
+var opponentPositionY = config.height / 2;
 var leftGoal;
 var rightGoal;
 var collisionGraphics;
@@ -37,8 +37,7 @@ var p1Score = 0;
 var p2Score = 0;
 var p1ScoreText;
 var p2ScoreText;
-var multiplier = [1, -1];
-
+var multiplier = 1;
 socket.on("side", (data) => {
   if (socket.id === data.socketID) {
     if (data.side === "left") {
@@ -53,7 +52,8 @@ socket.on("full", () => {
   console.log("Game is full please try again later");
 });
 
-socket.on("start", () => {
+socket.on("start", (data) => {
+  multiplier = data.mul;
   config.scene.create = create;
   game = new Phaser.Game(config);
   console.log(socket.id + " game start");
@@ -63,6 +63,32 @@ socket.on("paddlePosition", (data) => {
   if (opponentPaddle != null && socket.id != data.ID) {
     opponentPositionY = data.y;
   }
+});
+socket.on("goal", (data) => {
+  multiplier = data.mul;
+  if (data.ID == socket.id) {
+    if (controlSide == "left") {
+      p1Score = data.points;
+      p1ScoreText.setText(p1Score);
+    } else {
+      p2Score = data.points;
+      p2ScoreText.setText(p2Score);
+    }
+  } else {
+    if (controlSide == "right") {
+      p1Score = data.points;
+      p1ScoreText.setText(p1Score);
+    } else {
+      p2Score = data.points;
+      p2ScoreText.setText(p2Score);
+    }
+  }
+
+  ball.setPosition(config.width / 2, config.height / 2);
+  ball.setVelocity(
+    Math.abs(ball.body.velocity.x) * multiplier,
+    Math.abs(ball.body.velocity.y) * multiplier,
+  );
 });
 
 function preload() {}
@@ -78,10 +104,7 @@ function create() {
   ball = this.physics.add.image(config.width / 2, config.height / 2, "ball");
   ball.setCollideWorldBounds(true);
   ball.setBounce(1, 1);
-  ball.setVelocity(
-    200 * multiplier[Math.floor(Math.random() * multiplier.length)],
-    200 * multiplier[Math.floor(Math.random() * multiplier.length)],
-  );
+  ball.setVelocity(200 * multiplier, 200 * multiplier);
 
   var graphics = this.add.graphics();
   createPaddle(graphics, "left");
@@ -190,25 +213,24 @@ function handleCollision(ball, object) {
     ball.setVelocityX(ball.body.velocity.y * 1.2);
     ball.setVelocityY(ball.body.velocity.y * 1.2);
   }
+  socket.emit("ballCollision", {
+    ballVelocity: ball.body.velocity,
+  });
+
+  socket.on("ballCollision", (data) => {
+    // ball.setPosition(data.ballPosition.x, data.ballPosition.y);
+    ball.setVelocityX(data.ballVelocity.x);
+    ball.setVelocityY(data.ballVelocity.y);
+  });
 }
 function GoalCollision(ball, object) {
-  if (object === leftGoal) {
-    p1Score++;
-    p1ScoreText.setText(p1Score);
-  }
-  if (object === rightGoal) {
-    p2Score++;
-    p2ScoreText.setText(p2Score);
+  if (object === rightGoal && controlSide === "left") {
+    socket.emit("goal", { ID: socket.id });
+  } else if (object === leftGoal && controlSide === "right") {
+    socket.emit("goal", { ID: socket.id });
   }
   collisionGraphics.clear();
   collisionGraphics.fillStyle(0xff0000, 1);
   collisionGraphics.fillCircle(ball.x, ball.y, 5);
-  ball.setPosition(config.width / 2, config.height / 2);
-  ball.setVelocity(
-    ball.body.velocity.x *
-      multiplier[Math.floor(Math.random() * multiplier.length)],
-    ball.body.velocity.y *
-      multiplier[Math.floor(Math.random() * multiplier.length)],
-  );
 }
 export default game;
